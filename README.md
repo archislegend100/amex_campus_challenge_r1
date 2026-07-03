@@ -1,8 +1,13 @@
 # AnalystFC — Amex Campus Challenge 2026, Round 1
 
-Retained leaderboard-best submission (public accuracy **0.8772**): a
-dollar-denominated issuer P&L that estimates each Cardmember's annual profit
-and ranks all 500,000 members, taking the top 20% as the most profitable.
+Leaderboard-best submission (public accuracy **0.8772**): a dollar-denominated
+issuer **P&L model** that estimates each Cardmember's annual profit, ranks all
+500,000 members by it, and flags the top 20% as the most profitable.
+
+The model is **fully interpretable and fit-free** — every term is a named
+revenue or cost line an issuer already tracks, and no parameters are learned at
+run time. Coefficients are anchored to issuer financial disclosures and the
+card's own published product terms, not tuned to the leaderboard.
 
 ## The equation (annual profit per member, $)
 ```
@@ -14,27 +19,30 @@ Profit = 0.023*(f6+f7+f8+f9+f10)          # interchange on category spend
        - 0.7*f11*f1                       # expected credit loss (PD x LGD x EAD)
        - (20*f2 + 60*f3)                  # servicing / collections calls
 ```
-Missing values are imputed as zero ("the event didn't happen") per the
-dataset's structured-missingness patterns. Coefficients are anchored to
-issuer financial disclosures and the card's own product terms — see the
-report for derivations, iteration history, and robustness analysis.
+Members are ranked by this estimated profit; the top 20% are predicted most
+profitable. Missing values are imputed as zero ("the event didn't happen") per
+the dataset's structured-missingness patterns. See the report for coefficient
+derivations, iteration history, and robustness analysis.
 
-## Files
-- `pipeline.py` — single end-to-end script: reads `Amex_R1_dataset.csv`,
-  scores all 500,000 members, writes the predictions CSV and the two-sheet
-  official-template submission workbook. Deterministic, no fitting at run time.
-- `report.tex` / `report.pdf` — full technical report: data forensics,
-  framework construction, coefficient derivation, experiment table with
-  public scores (0.538 → 0.8772), robustness, guideline compliance.
-- `AnalystFC_Amex_R1_predictions.csv` — the submission predictions (ID, Prediction).
+## Repository contents
+| File | Description |
+| --- | --- |
+| `pipeline.py` | Single end-to-end script: reads `Amex_R1_dataset.csv`, scores all 500,000 members, and writes the predictions CSV plus the two-sheet official-template submission workbook. Deterministic, no fitting at run time. |
+| `Amex_Round1_Technical_Report.pdf` | Full technical report: data forensics, framework construction, coefficient derivation, experiment table with public scores (0.538 → 0.8772), robustness, and guideline compliance. |
+| `README.md` | This file. |
 
 ## Run
+```bash
+pip install pandas numpy xlsxwriter
+python pipeline.py
 ```
-python pipeline.py        # requires pandas, numpy, xlsxwriter
-```
+**Input:** `Amex_R1_dataset.csv` (23 masked attributes, 500k rows) in the repo root.
+**Output:**
+- `AnalystFC_Amex_R1_predictions.csv` — the submission predictions (`ID`, `Prediction`).
+- `AnalystFC_Amex_R1_submission.xlsx` — two-sheet official submission workbook (predictions + profitability framework).
 
 ## Guideline compliance
-Only provided variables f1–f23 are used; `id` never enters the equation; no
-rows added or altered; all 500,000 unique identifiers scored; exact official
-submission template format; equation is interpretable and scalable (every
-term is a named revenue or cost line an issuer already tracks).
+- Only the provided variables `f1`–`f23` are used; `id` never enters the equation.
+- No rows added or altered; all 500,000 unique identifiers are scored.
+- Output matches the exact official submission-template format.
+- The model is interpretable and scalable — every term maps to a real issuer revenue or cost line.
